@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calcul de Notes - {{ tutor_name }}</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="page">
+        <header class="hero">
+            <div class="hero__badge">INSTA</div>
+            <div class="hero__headline">
+                <h1 class="hero__title">
+                    <span class="hero__brand">{{ tutor_name }}</span> — <span class="hero__accent">Calcul de Notes</span>
+                </h1>
+                <div class="hero__logo-wrap">
+                    <img
+                        class="hero__logo"
+                        src="/static/hero-logo.png"
+                        width="160"
+                        height="160"
+                        alt="Emblème de l'INSTA"
+                        decoding="async"
+                        fetchpriority="high"
+                    />
+                </div>
+            </div>
+            <div class="hero__actions">
+                <a href="/" class="btn btn--ghost">← Retour au Chat</a>
+            </div>
+        </header>
+
+        <main class="layout">
+            <section class="card card--chat">
+                <div class="card__head card__head--tabs">
+                    <div class="chat-tabs" role="tablist" aria-label="Vue du calcul">
+                        <button type="button" class="chat-tabs__btn chat-tabs__btn--active" onclick="showSection('entry')" id="tabEntry">
+                            Saisie des Notes
+                        </button>
+                        <button type="button" class="chat-tabs__btn" onclick="showSection('results')" id="tabResults">
+                            Résultats
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Section de saisie des notes -->
+                <div id="entrySection" class="chat-panel chat-panel--active">
+                    <div class="thread-toolbar select-toolbar">
+                        <select id="niveauSelect" onchange="loadSemestres()" class="composer__select">
+                            <option value="">Sélectionner un niveau</option>
+                        </select>
+                        <select id="semestreSelect" onchange="loadModules()" class="composer__select">
+                            <option value="">Sélectionner un semestre</option>
+                        </select>
+                        <select id="parcoursSelect" onchange="loadModules()" class="composer__select" style="display: none;">
+                            <option value="">Sélectionner un parcours</option>
+                        </select>
+                        <select id="moduleSelect" onchange="loadMatieres()" class="composer__select">
+                            <option value="">Sélectionner un module</option>
+                        </select>
+                    </div>
+
+                    <div id="matieresContainer" class="thread-list">
+                        <p class="muted" style="text-align: center; padding: 2rem;">
+                            Sélectionnez un niveau, semestre et module pour saisir les notes
+                        </p>
+                    </div>
+
+                    <div class="composer__actions">
+                        <button type="button" class="btn btn--ghost" onclick="resetForm()">
+                            Réinitialiser
+                        </button>
+                        <button type="button" class="btn btn--primary" onclick="calculateModule()">
+                            Calculer
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Section des résultats -->
+                <div id="resultsSection" class="chat-panel">
+                    <div id="resultsContainer" class="thread-list">
+                        <p class="muted" style="text-align: center; padding: 2rem;">
+                            Les résultats apparaîtront ici après le calcul
+                        </p>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer class="footer">
+            <p>Système de calcul de notes pour les modules de génie logiciel</p>
+        </footer>
+    </div>
+
+    <script>
+        let modulesData = {};
+        let currentModuleData = null;
+
+        // Charger les modules au démarrage
+        async function loadModulesData() {
+            try {
+                const response = await fetch('/api/modules');
+                modulesData = await response.json();
+                populateNiveaux();
+            } catch (error) {
+                console.error('Erreur lors du chargement des modules:', error);
+                alert('Erreur lors du chargement des modules');
+            }
+        }
+
+        function populateNiveaux() {
+            const select = document.getElementById('niveauSelect');
+            select.innerHTML = '<option value="">Sélectionner un niveau</option>';
+            Object.keys(modulesData).forEach(niveau => {
+                const option = document.createElement('option');
+                option.value = niveau;
+                option.textContent = niveau;
+                select.appendChild(option);
+            });
+        }
+
+        function loadSemestres() {
+            const niveau = document.getElementById('niveauSelect').value;
+            const select = document.getElementById('semestreSelect');
+            select.innerHTML = '<option value="">Sélectionner un semestre</option>';
+            
+            // Cacher le select de parcours par défaut
+            document.getElementById('parcoursSelect').style.display = 'none';
+            document.getElementById('parcoursSelect').innerHTML = '<option value="">Sélectionner un parcours</option>';
+            
+            if (niveau && modulesData[niveau]) {
+                Object.keys(modulesData[niveau]).forEach(semestre => {
+                    const option = document.createElement('option');
+                    option.value = semestre;
+                    option.textContent = semestre;
+                    select.appendChild(option);
+                });
+            }
+            
+            document.getElementById('moduleSelect').innerHTML = '<option value="">Sélectionner un module</option>';
+            document.getElementById('matieresContainer').innerHTML = '<p class="muted" style="text-align: center; padding: 2rem;">Sélectionnez un niveau, semestre et module pour saisir les notes</p>';
+        }
+
+        function loadModules() {
+            const niveau = document.getElementById('niveauSelect').value;
+            const semestre = document.getElementById('semestreSelect').value;
+            const parcoursSelect = document.getElementById('parcoursSelect');
+            const moduleSelect = document.getElementById('moduleSelect');
+            
+            // Save the currently selected parcours before we potentially recreate options
+            const currentParcours = parcoursSelect.value;
+            
+            moduleSelect.innerHTML = '<option value="">Sélectionner un module</option>';
+            
+            if (!niveau || !semestre) return;
+            
+            // Vérifier si le niveau 3 a des parcours (structure imbriquée)
+            if (niveau === 'Niveau 3' && modulesData[niveau][semestre]) {
+                const semestreData = modulesData[niveau][semestre];
+                
+                // Vérifier si les clés sont des parcours ou des modules directs
+                const firstKey = Object.keys(semestreData)[0];
+                if (firstKey && semestreData[firstKey].matieres === undefined) {
+                    // C'est une structure avec parcours
+                    parcoursSelect.style.display = 'block';
+                    
+                    // Populate parcours only if it's empty
+                    if (parcoursSelect.options.length <= 1) {
+                        parcoursSelect.innerHTML = '<option value="">Sélectionner un parcours</option>';
+                        Object.keys(semestreData).forEach(parcours => {
+                            const option = document.createElement('option');
+                            option.value = parcours;
+                            option.textContent = parcours;
+                            parcoursSelect.appendChild(option);
+                        });
+                        document.getElementById('matieresContainer').innerHTML = '<p class="muted" style="text-align: center; padding: 2rem;">Sélectionnez un parcours puis un module</p>';
+                        return;
+                    }
+                    
+                    if (currentParcours && semestreData[currentParcours]) {
+                        Object.keys(semestreData[currentParcours]).forEach(moduleId => {
+                            const option = document.createElement('option');
+                            option.value = moduleId;
+                            // Prepend the module ID (e.g. UE15) for clarity
+                            option.textContent = moduleId + " - " + semestreData[currentParcours][moduleId].nom;
+                            moduleSelect.appendChild(option);
+                        });
+                    } else {
+                        document.getElementById('matieresContainer').innerHTML = '<p class="muted" style="text-align: center; padding: 2rem;">Sélectionnez un parcours puis un module</p>';
+                    }
+                    return;
+                }
+            }
+            
+            // Structure normale sans parcours
+            parcoursSelect.style.display = 'none';
+            parcoursSelect.value = '';
+            
+            if (niveau && semestre && modulesData[niveau] && modulesData[niveau][semestre]) {
+                Object.keys(modulesData[niveau][semestre]).forEach(moduleId => {
+                    const option = document.createElement('option');
+                    option.value = moduleId;
+                    option.textContent = moduleId + " - " + modulesData[niveau][semestre][moduleId].nom;
+                    moduleSelect.appendChild(option);
+                });
+            }
+            
+            document.getElementById('matieresContainer').innerHTML = '<p class="muted" style="text-align: center; padding: 2rem;">Sélectionnez un niveau, semestre et module pour saisir les notes</p>';
+        }
+
+        function loadMatieres() {
+            const niveau = document.getElementById('niveauSelect').value;
+            const semestre = document.getElementById('semestreSelect').value;
+            const parcours = document.getElementById('parcoursSelect').value;
+            const moduleId = document.getElementById('moduleSelect').value;
+            
+            if (!niveau || !semestre || !moduleId) return;
+            
+            // Déterminer la source des données (avec ou sans parcours)
+            let moduleData;
+            if (parcours && modulesData[niveau][semestre][parcours]) {
+                moduleData = modulesData[niveau][semestre][parcours][moduleId];
+            } else {
+                moduleData = modulesData[niveau][semestre][moduleId];
+            }
+            
+            currentModuleData = moduleData;
+            const container = document.getElementById('matieresContainer');
+            container.innerHTML = '';
+            
+            currentModuleData.matieres.forEach(matiere => {
+                const div = document.createElement('div');
+                div.className = 'matiere-form-row';
+                div.innerHTML = `
+                    <div class="matiere-form-info">
+                        <div class="matiere-form-title">${matiere.nom}</div>
+                        <div class="matiere-form-subtitle">Coefficient: ${matiere.coefficient} | TP: ${matiere.avec_tp ? 'Oui' : 'Non'}</div>
+                    </div>
+                    <div class="matiere-inputs">
+                        <div class="input-group">
+                            <label>CC (${matiere.avec_tp ? '30%' : '40%'}):</label>
+                            <input type="number" id="cc_${matiere.nom.replace(/\s/g, '_')}" min="0" max="20" step="0.5" class="note-input">
+                        </div>
+                        <div class="input-group">
+                            <label>Examen (60%):</label>
+                            <input type="number" id="examen_${matiere.nom.replace(/\s/g, '_')}" min="0" max="20" step="0.5" class="note-input">
+                        </div>
+                        ${matiere.avec_tp ? `
+                        <div class="input-group">
+                            <label>TP (40%):</label>
+                            <input type="number" id="tp_${matiere.nom.replace(/\s/g, '_')}" min="0" max="20" step="0.5" class="note-input">
+                        </div>
+                        ` : ''}
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        async function calculateModule() {
+            const niveau = document.getElementById('niveauSelect').value;
+            const semestre = document.getElementById('semestreSelect').value;
+            const parcours = document.getElementById('parcoursSelect').value;
+            const moduleId = document.getElementById('moduleSelect').value;
+            
+            if (!niveau || !semestre || !moduleId) {
+                alert('Veuillez sélectionner un niveau, semestre et module');
+                return;
+            }
+            
+            const notes = {};
+            let hasError = false;
+            
+            currentModuleData.matieres.forEach(matiere => {
+                const matiereId = matiere.nom.replace(/\s/g, '_');
+                const cc = parseFloat(document.getElementById(`cc_${matiereId}`).value);
+                const examen = parseFloat(document.getElementById(`examen_${matiereId}`).value);
+                const tp = matiere.avec_tp ? parseFloat(document.getElementById(`tp_${matiereId}`).value) : null;
+                
+                if (isNaN(cc) || isNaN(examen) || (matiere.avec_tp && isNaN(tp))) {
+                    hasError = true;
+                    return;
+                }
+                
+                notes[matiere.nom] = {
+                    cc: cc,
+                    examen: examen,
+                    tp: tp
+                };
+            });
+            
+            if (hasError) {
+                alert('Veuillez remplir toutes les notes');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/grades/calculate-module', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        niveau: niveau,
+                        semestre: semestre,
+                        module_id: moduleId,
+                        parcours: parcours || null,
+                        notes: notes
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Erreur lors du calcul');
+                }
+                
+                const result = await response.json();
+                displayResults(result);
+            } catch (error) {
+                console.error('Erreur:', error);
+                alert('Erreur lors du calcul des notes');
+            }
+        }
+
+        function displayResults(result) {
+            showSection('results');
+            const container = document.getElementById('resultsContainer');
+            
+            container.innerHTML = `
+                <div class="module-result">
+                    <h3>${result.module}</h3>
+                    <p class="moyenne-globale">Moyenne: <strong>${result.moyenne}/20</strong></p>
+                    <p class="statut ${result.valide ? 'valide' : 'non-valide'}">
+                        ${result.valide ? '✅ MODULE VALIDÉ' : '❌ MODULE NON VALIDÉ'}
+                    </p>
+                    <h4>Détail par matière:</h4>
+                    <ul class="matieres-result">
+                        ${result.matieres.map(m => `
+                            <li class="matiere-item">
+                                <div class="matiere-nom">${m.nom}</div>
+                                <div class="matiere-details">
+                                    <span>CC: ${m.notes.cc}/20</span>
+                                    ${m.notes.tp !== null ? `<span>TP: ${m.notes.tp}/20</span>` : ''}
+                                    <span>Examen: ${m.notes.examen}/20</span>
+                                </div>
+                                <div class="matiere-moyenne">Moyenne: <strong>${m.moyenne}/20</strong> (Coef: ${m.coefficient})</div>
+                                <div class="matiere-statut ${m.valide ? 'valide' : 'non-valide'}">
+                                    ${m.valide ? '✅' : '❌'}
+                                </div>
+                            </li>
+                        `).join('')}
+                    </ul>
+                </div>
+            `;
+        }
+
+        function resetForm() {
+            document.getElementById('niveauSelect').value = '';
+            document.getElementById('semestreSelect').innerHTML = '<option value="">Sélectionner un semestre</option>';
+            document.getElementById('parcoursSelect').innerHTML = '<option value="">Sélectionner un parcours</option>';
+            document.getElementById('parcoursSelect').style.display = 'none';
+            document.getElementById('moduleSelect').innerHTML = '<option value="">Sélectionner un module</option>';
+            document.getElementById('matieresContainer').innerHTML = '<p class="muted" style="text-align: center; padding: 2rem;">Sélectionnez un niveau, semestre et module pour saisir les notes</p>';
+            document.getElementById('resultsContainer').innerHTML = '<p class="muted" style="text-align: center; padding: 2rem;">Les résultats apparaîtront ici après le calcul</p>';
+            currentModuleData = null;
+        }
+
+        function showSection(section) {
+            document.getElementById('entrySection').classList.remove('chat-panel--active');
+            document.getElementById('resultsSection').classList.remove('chat-panel--active');
+            document.getElementById('tabEntry').classList.remove('chat-tabs__btn--active');
+            document.getElementById('tabResults').classList.remove('chat-tabs__btn--active');
+            
+            if (section === 'entry') {
+                document.getElementById('entrySection').classList.add('chat-panel--active');
+                document.getElementById('tabEntry').classList.add('chat-tabs__btn--active');
+            } else {
+                document.getElementById('resultsSection').classList.add('chat-panel--active');
+                document.getElementById('tabResults').classList.add('chat-tabs__btn--active');
+            }
+        }
+
+        // Charger les données au démarrage
+        loadModulesData();
+    </script>
+
+    <style>
+        .select-toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .composer__select {
+            padding: 0.5rem 1rem;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--card-border);
+            background: var(--card);
+            color: var(--text);
+            font-family: inherit;
+            font-size: 0.9rem;
+            margin-right: 0;
+            flex: 1 1 200px;
+            min-width: 0;
+        }
+
+        .matiere-form-row {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            padding: 1rem 1.1rem;
+            background: rgba(30, 41, 59, 0.4);
+            border: 1px solid transparent;
+            border-radius: var(--radius-sm);
+            margin-bottom: 0.5rem;
+            transition: all 0.2s ease;
+        }
+        
+        .matiere-form-row:hover {
+            background: rgba(30, 41, 59, 0.7);
+            border-color: var(--accent);
+        }
+
+        @media (min-width: 768px) {
+            .matiere-form-row {
+                flex-direction: row;
+                align-items: center;
+                justify-content: space-between;
+            }
+        }
+
+        .matiere-form-info {
+            flex: 1;
+        }
+
+        .matiere-form-title {
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 0.2rem;
+        }
+
+        .matiere-form-subtitle {
+            font-size: 0.8rem;
+            color: var(--muted);
+        }
+
+        .matiere-inputs {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+            flex: 1 1 80px;
+        }
+
+        .input-group label {
+            font-size: 0.8rem;
+            color: var(--muted);
+            white-space: nowrap;
+        }
+
+        .note-input {
+            padding: 0.4rem 0.6rem;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--card-border);
+            background: var(--card);
+            color: var(--text);
+            font-family: inherit;
+            font-size: 0.9rem;
+            width: 100%;
+            min-width: 60px;
+        }
+
+        .module-result {
+            padding: 1.5rem;
+        }
+
+        .module-result h3 {
+            margin: 0 0 1rem 0;
+            color: var(--text);
+        }
+
+        .moyenne-globale {
+            font-size: 1.2rem;
+            margin: 0.5rem 0;
+        }
+
+        .moyenne-globale strong {
+            color: var(--accent);
+        }
+
+        .statut {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin: 0.5rem 0 1.5rem 0;
+        }
+
+        .statut.valide {
+            color: #22c55e;
+        }
+
+        .statut.non-valide {
+            color: #ef4444;
+        }
+
+        .module-result h4 {
+            margin: 1rem 0 0.75rem 0;
+            color: var(--text);
+        }
+
+        .matieres-result {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .matiere-item {
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius-sm);
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .matiere-nom {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--text);
+        }
+
+        .matiere-details {
+            display: flex;
+            gap: 1rem;
+            font-size: 0.9rem;
+            color: var(--muted);
+            margin-bottom: 0.5rem;
+        }
+
+        .matiere-moyenne {
+            font-size: 1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .matiere-moyenne strong {
+            color: var(--accent);
+        }
+
+        .matiere-statut {
+            font-size: 1.2rem;
+            font-weight: 700;
+        }
+
+        .matiere-statut.valide {
+            color: #22c55e;
+        }
+
+        .matiere-statut.non-valide {
+            color: #ef4444;
+        }
+    </style>
+</body>
+</html>

@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{ tutor_name }} — Tuteur académique</title>
+    <link rel="stylesheet" href="/static/style.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div class="page">
+      <header class="hero">
+        <div class="hero__badge">INSTA</div>
+        <div class="hero__headline">
+          <h1 class="hero__title">
+            <span class="hero__brand">{{ tutor_name }}</span> — <span class="hero__accent">Chatbot</span>
+          </h1>
+          <div class="hero__logo-wrap">
+            <img
+              class="hero__logo"
+              src="/static/hero-logo.png"
+              width="160"
+              height="160"
+              alt="Emblème de l'INSTA — Institut national supérieur des sciences et techniques d'Abéché"
+              decoding="async"
+              fetchpriority="high"
+            />
+          </div>
+        </div>
+        <div class="hero__actions">
+          <a href="/grades" class="btn btn--primary">Calcul de Notes</a>
+        </div>
+      </header>
+
+      <main class="layout">
+        <section class="card card--chat" aria-label="Zone de conversation">
+          <div class="card__head card__head--tabs">
+            <div class="chat-tabs" role="tablist" aria-label="Vue du chat">
+              <button type="button" class="chat-tabs__btn chat-tabs__btn--active" role="tab" id="tabChat" aria-selected="true">
+                Discussion
+              </button>
+              <button type="button" class="chat-tabs__btn" role="tab" id="tabHistory" aria-selected="false">
+                Mes conversations
+              </button>
+            </div>
+            <span class="card__hint" id="statusHint">Prêt</span>
+          </div>
+
+          <div id="panelChat" class="chat-panel chat-panel--active" role="tabpanel" aria-labelledby="tabChat">
+            <div class="chat" id="chatLog" role="log" aria-live="polite" aria-relevant="additions"></div>
+
+            <form class="composer" id="chatForm" autocomplete="off" action="#" method="post">
+              <label class="sr-only" for="questionInput">Votre question</label>
+              <textarea
+                id="questionInput"
+                name="question"
+                rows="2"
+                maxlength="4000"
+                required
+                placeholder="Ex. : Quelle est la différence entre INNER JOIN et LEFT JOIN en SQL ?"
+              ></textarea>
+              <div class="composer__actions">
+                <button type="submit" class="btn btn--primary" id="sendBtn">
+                  <span class="btn__label">Envoyer</span>
+                  <span class="btn__spinner" id="sendSpinner" hidden aria-hidden="true"></span>
+                </button>
+                <button type="button" class="btn btn--ghost" id="clearBtn">Effacer cette discussion</button>
+              </div>
+            </form>
+          </div>
+
+          <div id="panelHistory" class="chat-panel chat-panel--history" role="tabpanel" aria-labelledby="tabHistory">
+            <div class="thread-toolbar">
+              <button type="button" class="btn btn--primary btn--sm" id="newThreadBtn">Nouvelle conversation</button>
+            </div>
+            <ul class="thread-list" id="threadList"></ul>
+            <p class="thread-list-foot muted">
+              Les conversations sont enregistrées dans ce navigateur (localStorage). Elles ne sont pas envoyées au serveur
+              tant que vous ne posez pas une question.
+            </p>
+          </div>
+        </section>
+
+        <aside class="sidebar">
+          <section class="card card--subjects">
+            <details class="subjects-panel">
+              <summary class="subjects-panel__summary">
+                <span class="subjects-panel__label">
+                  <span class="subjects-panel__title">Matières couvertes</span>
+                  <span class="subjects-panel__hint">Cliquer pour afficher ou masquer la liste</span>
+                </span>
+              </summary>
+              <div class="subjects-panel__body">
+                <ul class="chips chips--panel">
+                  <li>SQL</li>
+                  <li>Python</li>
+                  <li>Java</li>
+                  <li>JavaScript</li>
+                  <li>UML</li>
+                  <li>Analyse et conception UML</li>
+                  <li>Génie logiciel</li>
+                  <li>Algorithmes</li>
+                  <li>Structures de données</li>
+                  <li>Bases de données</li>
+                  <li>API REST</li>
+                  <li>Programmation web</li>
+                  <li>Programmation système et réseau</li>
+                  <li>Langage C</li>
+                  <li>Architecture des ordinateurs</li>
+                  <li>Systèmes d’exploitation</li>
+                  <li>Réseaux informatiques</li>
+                  <li>Data mining</li>
+                  <li>Développement mobile</li>
+                  <li>Administration système</li>
+                  <li>Interface multimédia</li>
+                  <li>Laboratoire Internet</li>
+                  <li>Mécanique générale</li>
+                  <li>Électricité générale</li>
+                  <li>Anglais</li>
+                  <li>Arabe</li>
+                  <li>Gestion d’entreprise</li>
+                  <li>Entrepreneuriat</li>
+                  <li>Comptabilité</li>
+                  <li>Économie</li>
+                  <li>Analyse</li>
+                  <li>Probabilité et statistique</li>
+                  <li>Algèbre</li>
+                  <li>Technologie des composants électroniques</li>
+                  <li>Systèmes de numération</li>
+                </ul>
+              </div>
+            </details>
+          </section>
+
+          <section class="card card--muted">
+            <h3 class="card__title card__title--sm">Hors périmètre</h3>
+            <p class="muted">
+              Si votre question n’est pas liée à ces matières, le système affichera&nbsp;:
+            </p>
+            <p class="alert-inline">{{ off_topic_message }}</p>
+          </section>
+        </aside>
+      </main>
+
+      <footer class="footer">
+        <p>INSTA@2026</p>
+      </footer>
+    </div>
+
+    {# Données pour le JS : évite les erreurs de syntaxe si le nom contient guillemets / retours ligne #}
+    <script type="application/json" id="app-boot">{{ boot_json | safe }}</script>
+    <script src="/static/app.js" defer></script>
+  </body>
+</html>
