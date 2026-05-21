@@ -302,8 +302,8 @@ MODULES_DATA = {
 CALCUL_COEFFICIENTS = {
     "avec_tp": {
         "cc": 0.30,
-        "examen": 0.60,
-        "tp": 0.40
+        "examen": 0.40,
+        "tp": 0.30
     },
     "sans_tp": {
         "cc": 0.40,

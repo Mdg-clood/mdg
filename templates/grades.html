@@ -243,12 +243,12 @@
                             <input type="number" id="cc_${matiere.nom.replace(/\s/g, '_')}" min="0" max="20" step="0.5" class="note-input">
                         </div>
                         <div class="input-group">
-                            <label>Examen (60%):</label>
+                            <label>Examen (${matiere.avec_tp ? '40%' : '60%'}):</label>
                             <input type="number" id="examen_${matiere.nom.replace(/\s/g, '_')}" min="0" max="20" step="0.5" class="note-input">
                         </div>
                         ${matiere.avec_tp ? `
                         <div class="input-group">
-                            <label>TP (40%):</label>
+                            <label>TP (30%):</label>
                             <input type="number" id="tp_${matiere.nom.replace(/\s/g, '_')}" min="0" max="20" step="0.5" class="note-input">
                         </div>
                         ` : ''}
