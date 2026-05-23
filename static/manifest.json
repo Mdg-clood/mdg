@@ -1,6 +1,7 @@
 {
   "name": "AskGL",
   "short_name": "AskGL",
+  "description": "Application Tuteur Académique AskGL",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
@@ -8,9 +9,27 @@
   "icons": [
     {
       "src": "/static/hero-logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/hero-logo.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/static/hero-logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/static/hero-logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }
